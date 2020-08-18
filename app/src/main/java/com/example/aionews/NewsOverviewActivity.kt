@@ -53,19 +53,24 @@ class NewsOverviewActivity : AppCompatActivity() {
         sharedPref = getSharedPreferences("DucSharedPre", Context.MODE_PRIVATE)
         username = sharedPref!!.getString("username", "Guest")
 
+        val isInit = sharedPref!!.getBoolean("isInit", false)
+
         val editor = sharedPref!!.edit()
         editor.putString("category", "")
 
-        Toast.makeText(this, "Welcome $username" , Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Welcome $username", Toast.LENGTH_LONG).show()
 
         //add username to drawer
-        var viewNavView: View =  navView.getHeaderView(0)
+        var viewNavView: View = navView.getHeaderView(0)
         var usernameTextView: TextView = viewNavView.findViewById(R.id.drawerLayoutUsername)
         usernameTextView.text = username
 
         //get rss
-        var newIntent = Intent(this, GetNewsOverviewService::class.java)
-        startService(newIntent)
+        if (!isInit) {
+            //Toast.makeText(this, "Start service", Toast.LENGTH_LONG).show()
+            var newIntent = Intent(this, GetNewsOverviewService::class.java)
+            startService(newIntent)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

@@ -3,6 +3,7 @@ package com.example.aionews
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.IBinder
 import androidx.work.*
 import java.util.concurrent.TimeUnit
@@ -29,14 +30,17 @@ class GetNewsOverviewService : Service(){
         val sharedPref = getSharedPreferences("DucSharedPre", Context.MODE_PRIVATE)
         var size :Int = sharedPref.getInt("rssSize", 0)
 
+        val editor = sharedPref.edit()
+        editor.putBoolean("isInit", true)
+        editor.commit()
+
         for(i in 0 until size){
             var id: Int = sharedPref.getInt("id$i", - 1)
 
-            if (id != -1) {
+            if (id != -1 && id < newsProvider.getListProvider().size) {
                 listProvider.add(newsProvider.getListProvider()[id].title)
+                listRssID.add(newsProvider.getListProvider()[id].ID)
             }
-
-            listRssID.add(newsProvider.getListProvider()[id].ID)
         }
 
         //create database handle
@@ -81,7 +85,7 @@ class GetNewsOverviewService : Service(){
             var listRss = getListRss(fileName)
 
             val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.UNMETERED)
+                .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
             var uploadWorkRequest =

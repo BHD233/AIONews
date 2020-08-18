@@ -65,6 +65,8 @@ class ChooseNewsProvider : AppCompatActivity() {
 
         val sharedPref = this?.getSharedPreferences("DucSharedPre", Context.MODE_PRIVATE) ?: return
         with (sharedPref.edit()) {
+            putBoolean("isInit", false)
+
             var i: Int = 0
 
             //delete old database
