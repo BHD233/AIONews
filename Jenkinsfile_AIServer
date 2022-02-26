@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCOUNT_ID="949030886198"
+        AWS_DEFAULT_REGION="us-east-1" 
+        IMAGE_REPO_NAME="visily-ai-server" 
+        ENVIRONMENT="${env.BRANCH_NAME}"
+        ENV_S3_PATH="s3://ai-engineer-test/env/${ENVIRONMENT}.env"
+        IMAGE_TAG="${ENVIRONMENT}"
+        REPOSITORY_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}"
+    }
+   
+    stages {
+        
+         stage('Logging into AWS ECR') {
+            steps {
+                script {
+                sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+                }
+                 
+            }
+        }
+        
+        stage('Cloning Git') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: 'test']], extensions: [], userRemoteConfigs: [[credentialsId: 'e05fcb87-d3dd-4b4a-85d5-1353307e29e6', url: 'git@github.com:kmslabs/visily-ai.git']]])     
+            }
+        }
+  
+    // Building Docker images
+    stage('Building image') {
+      steps{
+          dir("ai_server") 
+            {
+              script {
+                    sh "pwd"
+                    sh "ls"
+                    sh "aws s3 cp ${ENV_S3_PATH} ./.env"
+                    sh "sh ./download_models_jenkins.sh ./.env"
+                    dockerImage = docker.build "${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+                }
+            }
+        
+      }
+    }
+   
+    // Uploading Docker images into AWS ECR
+    stage('Pushing to ECR') {
+     steps{  
+         script {
+                sh "docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${REPOSITORY_URI}:$IMAGE_TAG"
+                sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}"
+         }
+        }
+      }
+    }
+}
